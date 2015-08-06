@@ -5,7 +5,7 @@ from vispy import app, gloo
 from vispy.util.transforms import perspective, translate, rotate
 from vispy.io import load_data_file, read_mesh, load_crate
 
-vert = """
+VERT_COLOR_CODE = """
 // Uniforms
 // ------------------------------------
 uniform   mat4 u_model;
@@ -25,13 +25,13 @@ varying vec4 v_color;
 
 void main()
 {
-    v_color = a_color * u_color;
+    v_color = u_color;
     gl_Position = u_projection * u_view * u_model * vec4(a_position,1.0);
 }
 """
 
 
-frag = """
+FRAG_COLOR_CODE = """
 // Varying
 // ------------------------------------
 varying vec4 v_color;
@@ -42,7 +42,7 @@ void main()
 }
 """
 
-VERT_CODE = """
+VERT_TEX_CODE = """
 uniform   mat4 u_model;
 uniform   mat4 u_view;
 uniform   mat4 u_projection;
@@ -54,22 +54,21 @@ varying vec2 v_texcoord;
 
 void main()
 {
-    v_texcoord = a_texcoord;
-    gl_Position = u_projection * u_view * u_model * vec4(a_position,1.0);
-    //gl_Position = vec4(a_position,1.0);
+  v_texcoord = a_texcoord;
+  gl_Position = u_projection * u_view * u_model * vec4(a_position,1.0);
 }
 """
 
 
-FRAG_CODE = """
+FRAG_TEX_CODE = """
 uniform sampler2D u_texture;
 varying vec2 v_texcoord;
 
 void main()
 {
-    float ty = v_texcoord.y;
-    float tx = sin(ty*50.0)*0.01 + v_texcoord.x;
-    gl_FragColor = texture2D(u_texture, vec2(tx, ty));
+  float ty = v_texcoord.y;
+  float tx = sin(ty*50.0)*0.01 + v_texcoord.x;
+  gl_FragColor = texture2D(u_texture, vec2(tx, ty));
 }
 """
 
@@ -80,18 +79,21 @@ class Canvas(app.Canvas):
   def __init__(self):
     app.Canvas.__init__(self, keys='interactive', size=(800, 600))
 
-    dirname = path.join(path.abspath(path.curdir),'examples/scratch/data')
+    dirname = path.join(path.abspath(path.curdir),'data')
     positions, faces, normals, texcoords = \
       read_mesh(load_data_file('cube.obj', directory=dirname))
 
     self.filled_buf = gloo.IndexBuffer(faces)
 
-    self.program = gloo.Program(VERT_CODE, FRAG_CODE)
-
-    self.program['a_position'] = gloo.VertexBuffer(positions)
-    self.program['a_texcoord'] = gloo.VertexBuffer(texcoords)
-
-    self.program['u_texture'] = gloo.Texture2D(load_crate())
+    if False:
+      self.program = gloo.Program(VERT_TEX_CODE, FRAG_TEX_CODE)
+      self.program['a_position'] = gloo.VertexBuffer(positions)
+      self.program['a_texcoord'] = gloo.VertexBuffer(texcoords)
+      self.program['u_texture'] = gloo.Texture2D(load_crate())
+    else:
+      self.program = gloo.Program(VERT_COLOR_CODE, FRAG_COLOR_CODE)
+      self.program['a_position'] = gloo.VertexBuffer(positions)
+      self.program['u_color'] = 1, 0, 0, 1
 
     self.view = translate((0, 0, -5))
     self.model = np.eye(4, dtype=np.float32)
@@ -139,7 +141,6 @@ class Canvas(app.Canvas):
     # Filled cube
 
     gloo.set_state(blend=False, depth_test=True, polygon_offset_fill=True)
-    #self.program['u_color'] = 1, 1, 1, 1
     self.program.draw('triangles', self.filled_buf)
 
 
