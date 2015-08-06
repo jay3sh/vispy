@@ -183,7 +183,7 @@ class Canvas(app.Canvas):
     def on_draw(self, event):
         clear(color=True, depth=True)
         self.program_e.draw('lines', self.index)
-        self.program.draw('points')
+        #self.program.draw('points')
 
 if __name__ == '__main__':
     c = Canvas(title="Graph")
